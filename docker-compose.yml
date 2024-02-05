@@ -1,5 +1,6 @@
-version: "3.2"
+version: "3.8"
 services:
+
   rabbitmq:
     image: rabbitmq:3-management-alpine
     container_name: 'rabbitmq'
@@ -12,12 +13,6 @@ services:
     networks:
         - rabbitmq_go_net
 
-networks:
-  rabbitmq_go_net:
-    driver: bridge
-
-version: '3.8'
-services:
   postgres_db:
     image: postgres:latest
     container_name: PostgresCont 
@@ -29,6 +24,11 @@ services:
       - '5432:5432'
     volumes:
       - postgres_db:/var/lib/postgresql/data
+      
+networks:
+  rabbitmq_go_net:
+    driver: bridge
+
 volumes:
   postgres_db:
     driver: local
