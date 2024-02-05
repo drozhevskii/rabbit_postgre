@@ -1,20 +1,23 @@
 import pika
+import sys
 
-f=open('received/outputimage.jpg','wb')
+def receive(filename):
+    f=open('received/{val}'.format(val = filename),'wb')
+    #f=open('received/imagetest.jpg','wb')
+    connection = pika.BlockingConnection(pika.ConnectionParameters(
+    host='localhost'))
+    channel = connection.channel()
 
-connection = pika.BlockingConnection(pika.ConnectionParameters(
-host='localhost'))
-channel = connection.channel()
+    channel.queue_declare(queue='imageq')
 
-channel.queue_declare(queue='imageq')
+    print(" [*] Waiting for images")
 
-print(" [*] Waiting for messages. To exit press CTRL+C")
+    def callback(ch, method, properties, body):
+        f.write(body)
+        f.close()
+        print(" [*] Image received")
 
-def callback(ch, method, properties, body):
-    f.write(body)
-    f.close()
-    channel.basic_consume(callback,
-    queue='imageq',
-    no_ack=True)
+    channel.basic_consume('imageq', callback, auto_ack=True)
+    channel.start_consuming()
 
-channel.start_consuming()
+#receive(filename)

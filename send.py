@@ -1,18 +1,21 @@
 import pika
 import logging
-import os
 
-path = 'imgs/'
-full_path = os.path.join(path, os.listdir(path)[0])
-f=open(full_path,'rb')
-i=f.read()
+def send(filename):
+    path = 'imgs/{val}'.format(val = filename)
+    print(path)
+    f=open(path, 'rb')
+    i=f.read()
+    #os.remove(full_path)
+    logging.basicConfig()
+    connection = pika.BlockingConnection(pika.ConnectionParameters(host='localhost'))
+    channel = connection.channel()
 
-logging.basicConfig()
-connection = pika.BlockingConnection(pika.ConnectionParameters(host='localhost'))
-channel = connection.channel()
+    channel.queue_declare(queue='imageq')
 
-channel.queue_declare(queue='imageq')
+    channel.basic_publish(exchange='',routing_key='imageq',body=i)
+    print("[x] Sent image")
+    connection.close()
 
-channel.basic_publish(exchange='',routing_key='imageq',body=i)
-print("[x] Sent image")
-connection.close()
+#filename="dis_pic_awaken.jpg"
+#(filename)
