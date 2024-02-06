@@ -7,7 +7,8 @@ from wtforms.validators import InputRequired
 import pika
 import logging
 import psycopg2
-#from config import load_config
+import psycopg2
+from config import load_config
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'supersecretkey'
@@ -16,9 +17,6 @@ app.config['UPLOAD_FOLDER'] = 'sent'
 class UploadFileForm(FlaskForm):
     file = FileField("File", validators=[InputRequired()])
     submit = SubmitField("Upload File")
-
-import psycopg2
-from config import load_config
 
 def create_tables():
 
@@ -137,10 +135,10 @@ def home():
         send(file.filename) #send the file to q
         create_tables()
         insert_send(file.filename)
-        #print('received/{val}'.format(val = file.filename))
-        receive(file.filename) #receive the file
-        insert_receive(file.filename)
         
+        #receive(file.filename) #receive the file
+        #insert_receive(file.filename)
+
         return "File has been uploaded."
     return render_template('index.html', form=form)
 
