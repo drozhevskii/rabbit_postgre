@@ -6,20 +6,92 @@ import os
 from wtforms.validators import InputRequired
 import pika
 import logging
-
-#import send_function
-#import receive_function
+import psycopg2
+#from config import load_config
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'supersecretkey'
-app.config['UPLOAD_FOLDER'] = 'imgs'
+app.config['UPLOAD_FOLDER'] = 'sent'
 
 class UploadFileForm(FlaskForm):
     file = FileField("File", validators=[InputRequired()])
     submit = SubmitField("Upload File")
 
+import psycopg2
+from config import load_config
+
+def create_tables():
+
+    try:
+        config = load_config()
+        with psycopg2.connect(**config) as conn:
+            with conn.cursor() as cur:
+                # execute the CREATE TABLE statement
+                cur.execute('''
+        CREATE TABLE IF NOT EXISTS images (
+            image_id SERIAL PRIMARY KEY,
+            image_name VARCHAR(255) NOT NULL,
+            image_status VARCHAR(255) NOT NULL,
+            date_processed TIMESTAMP
+        )
+        ''')
+    except (psycopg2.DatabaseError, Exception) as error:
+        print(error)
+
+def insert_send(filename):
+
+    sql = """INSERT INTO images(image_name, image_status, date_processed)
+             VALUES(%s,'sent', current_timestamp) RETURNING image_id;"""
+    
+    image_id = None
+    config = load_config()
+
+    try:
+        with  psycopg2.connect(**config) as conn:
+            with  conn.cursor() as cur:
+                # execute the INSERT statement
+                cur.execute(sql, (filename,))
+
+                # get the generated id back                
+                rows = cur.fetchone()
+                if rows:
+                    image_id = rows[0]
+
+                # commit the changes to the database
+                conn.commit()
+    except (Exception, psycopg2.DatabaseError) as error:
+        print(error)    
+    finally:
+        return image_id
+    
+def insert_receive(filename):
+
+    sql = """INSERT INTO images(image_name, image_status, date_processed)
+             VALUES(%s,'received', current_timestamp) RETURNING image_id;"""
+    
+    image_id = None
+    config = load_config()
+
+    try:
+        with  psycopg2.connect(**config) as conn:
+            with  conn.cursor() as cur:
+                # execute the INSERT statement
+                cur.execute(sql, (filename,))
+
+                # get the generated id back                
+                rows = cur.fetchone()
+                if rows:
+                    image_id = rows[0]
+
+                # commit the changes to the database
+                conn.commit()
+    except (Exception, psycopg2.DatabaseError) as error:
+        print(error)    
+    finally:
+        return image_id
+
 def send(filename):
-    path = 'imgs/{val}'.format(val = filename)
+    path = 'sent/{val}'.format(val = filename)
     print(path)
     f=open(path, 'rb')
     i=f.read()
@@ -36,7 +108,6 @@ def send(filename):
 
 def receive(filename):
     f=open('received/{val}'.format(val = filename),'wb')
-    #f=open('received/imagetest.jpg','wb')
     connection = pika.BlockingConnection(pika.ConnectionParameters(
     host='localhost'))
     channel = connection.channel()
@@ -51,7 +122,8 @@ def receive(filename):
         print(" [*] Image received")
 
     channel.basic_consume('imageq', callback, auto_ack=True)
-    channel.start_consuming()
+    connection.close()
+    #channel.start_consuming()
 
 
 @app.route('/', methods=['GET',"POST"])
@@ -63,8 +135,12 @@ def home():
         file = form.file.data # grab the file
         file.save(os.path.join(os.path.abspath(os.path.dirname(__file__)),app.config['UPLOAD_FOLDER'],secure_filename(file.filename))) # save the file
         send(file.filename) #send the file to q
+        create_tables()
+        insert_send(file.filename)
         #print('received/{val}'.format(val = file.filename))
         receive(file.filename) #receive the file
+        insert_receive(file.filename)
+        
         return "File has been uploaded."
     return render_template('index.html', form=form)
 
