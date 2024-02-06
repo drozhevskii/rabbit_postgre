@@ -131,16 +131,19 @@ def home():
     form = UploadFileForm()
     if form.validate_on_submit():
         file = form.file.data # grab the file
+        filename = file.filename
         file.save(os.path.join(os.path.abspath(os.path.dirname(__file__)),app.config['UPLOAD_FOLDER'],secure_filename(file.filename))) # save the file
-        send(file.filename) #send the file to q
+        send(filename) #send the file to q
         create_tables()
-        insert_send(file.filename)
+        insert_send(filename)
         
-        #receive(file.filename) #receive the file
-        #insert_receive(file.filename)
+        receive(file.filename) #receive the file
+        insert_receive(file.filename)
 
         return "File has been uploaded."
+
     return render_template('index.html', form=form)
+
 
 if __name__ == '__main__':
     app.run(debug=True)
