@@ -25,6 +25,14 @@ services:
     volumes:
       - postgres_db:/var/lib/postgresql/data
 
+  rabbit_postgre:
+    image: drozhevskii/rabbit_postgre:latest
+    links:
+      - rabbitmq
+      - postgres_db
+    ports:
+      - '5000:5000'
+      
 networks:
   rabbitmq_go_net:
     driver: bridge
